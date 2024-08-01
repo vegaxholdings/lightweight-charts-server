@@ -1,7 +1,7 @@
 import pandas as pd
 from lightweight_charts import Chart
 
-import chart_server
+import src
 
 
 def make_chart():
@@ -31,10 +31,10 @@ def make_chart():
     )
     chart.legend(visible=True, font_size=14)
 
-    df = pd.read_csv("example_data/styling_ohlcv.csv")
+    df = pd.read_csv("sample/styling_ohlcv.csv")
     chart.set(df)
     return chart
 
 
 if __name__ == "__main__":
-    chart_server.run(make_chart)
+    src.run(make_chart, port=8000)
