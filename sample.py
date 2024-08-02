@@ -4,5 +4,5 @@ from src import Server
 
 
 if __name__ == "__main__":
-    server = Server(make_chart)
+    server = Server(callback=make_chart)
     server.serve()

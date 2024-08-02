@@ -23,8 +23,6 @@ def clear_inject():
 class Function:
     """Calling functions defined in functions.js"""
 
-    path = root / "functions.js"
-
     def __init__(self, name: str):
         self.name = name
 

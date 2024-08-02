@@ -1,4 +1,5 @@
 import inspect
+import traceback
 from pathlib import Path
 from typing import Callable
 from datetime import datetime
@@ -57,7 +58,7 @@ class CallbackError(Exception):
 
     def __str__(self):
         return (
-            f"Callback function signature is incorrect.\n"
+            f"Invalid callback function\n"
             f"------------- Please fix the callback function as per the message below. -------------\n\n"
             f"{self.msg}"
             f"\n\n======================================================================================="
@@ -80,9 +81,10 @@ class Server:
     def __init__(self, callback: Callable[..., Chart]):
         self.callback = callback
         self.callback_signature = inspect.signature(callback)
+        self.inspect_callback()
 
-    def inject_form(self):
-        input_tags = []
+    def inspect_callback(self):
+        """Validation of parameters defined in callback function signature"""
         for name, param in self.callback_signature.parameters.items():
             if param.annotation is inspect._empty:
                 raise CallbackError(
@@ -93,21 +95,39 @@ class Server:
                     f"The type defined in the '{name}' parameter, "
                     f"{param.annotation}, is not supported!"
                 )
-            default = ""
-            if param.default is not inspect._empty:
-                default = param.default
-                if not isinstance(param.default, param.annotation):
-                    raise CallbackError(
-                        f"The type defined in the '{name}' parameter is different from the default type!\n"
-                        f"Detail: The type defined for the '{name}' parameter is {param.annotation}, "
-                        f"but the type of the default value is {type(param.default)}."
-                    )
+            if param.default is inspect._empty:
+                raise CallbackError(f"No default value defined for parameter '{name}'!")
+            if not isinstance(param.default, param.annotation):
+                raise CallbackError(
+                    f"The type defined in the '{name}' parameter is different from the default type!\n"
+                    f"Detail: The type defined for the '{name}' parameter is {param.annotation}, "
+                    f"but the type of the default value is {type(param.default)}."
+                )
+
+    def execute_callback(self):
+        try:
+            result = self.callback()
+        except Exception:
+            raise CallbackError(
+                "An error occurred in the callback function\n\n"
+                + traceback.format_exc()
+            )
+        if not isinstance(result, Chart):
+            raise CallbackError(
+                "The callback function must return a Chart object.\n\n"
+                f"Return of callback function: {result}"
+            )
+        return result
+
+    def inject_form(self):
+        input_tags = []
+        for name, param in self.callback_signature.parameters.items():
             to_html = self.html_type[param.annotation]
             input_tags.append(
                 f"""
             <div class="input">
                 <label for="{name}">{name}</label>
-                <input type="{to_html["type"]}" value="{to_html['encoder'](default)}">
+                <input type="{to_html["type"]}" value="{to_html['encoder'](param.default)}">
             </div>
             """
             )
@@ -120,7 +140,7 @@ class Server:
 
     def serve(self, port=5000):
         js.clear_inject()
-        chart = self.callback()
+        chart = self.execute_callback()
         chart.show()
         self.inject_form()
         uvicorn.run(app, port=port)

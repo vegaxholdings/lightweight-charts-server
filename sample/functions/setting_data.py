@@ -23,6 +23,7 @@ def make_chart(
     hello8: int = 10,
 ):
     chart = Chart()
+    print(chart.helloy)
     df = pd.read_csv(
         "/Users/jeonghoowon/dev/chart-server/sample/data/setting_data_ohlcv.csv"
     )
