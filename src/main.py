@@ -1,7 +1,7 @@
 import inspect
 import traceback
 from pathlib import Path
-from typing import Callable
+from typing import Callable, ParamSpec
 from datetime import datetime
 
 import uvicorn
@@ -34,15 +34,6 @@ def intercepted_evaluate_js(self, script, *args, **kwargs):
 util.inject_pywebview = intercepted_inject_pywebview
 window.Window.evaluate_js = intercepted_evaluate_js
 
-app = FastAPI()
-app.mount("/static", StaticFiles(directory=static_dir_path))
-templates = Jinja2Templates(directory=static_dir_path)
-
-
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse("main.html", {"request": request})
-
 
 class CallbackError(Exception):
 
@@ -59,30 +50,52 @@ class CallbackError(Exception):
         )
 
 
-class Server:
+P = ParamSpec("P")
 
-    html_type = {
-        int: {"type": "number", "encoder": lambda x: x},
-        float: {"type": "number", "encoder": lambda x: x},
-        str: {"type": "text", "encoder": lambda x: x},
-        bool: {"type": "checkbox", "encoder": lambda x: str(x).lower()},
+
+class View:
+
+    # Callback function parameter type processing definition
+    dtypes = {
+        int: {
+            "input": "number",  # Python type -> HTML input type
+            "encoder": lambda x: x,  # Callback parameter -> HTML input value
+            "decoder": lambda x: int(x),  # HTTP Request json -> Callback parameter
+        },
+        float: {
+            "input": "number",
+            "encoder": lambda x: x,
+            "decoder": lambda x: float(x),
+        },
+        str: {
+            "input": "text",
+            "encoder": lambda x: x,
+            "decoder": lambda x: str(x),
+        },
+        bool: {
+            "input": "checkbox",
+            "encoder": lambda x: str(x).lower(),
+            "decoder": lambda x: bool(x),
+        },
         datetime: {
-            "type": "datetime-local",
+            "input": "datetime-local",
             "encoder": lambda x: x.strftime("%Y-%m-%dT%H:%M:%S"),
+            "decoder": lambda x: datetime.fromisoformat(x),
         },
     }
 
-    def __init__(self, callback: Callable[..., Chart]):
-        self.callback = callback
+    def __init__(self, callback: Callable[P, Chart]):
+        self.callback_func = callback
         self.callback_signature = inspect.signature(callback)
-        self.inspect_callback()
+        self.inspect_callback_signature()
 
-    def inspect_callback(self):
+    def inspect_callback_signature(self):
         """Validation of parameters defined in callback function signature"""
+
         for name, param in self.callback_signature.parameters.items():
             if param.annotation is inspect._empty:
                 raise CallbackError(f"No type definition exists for parameter '{name}'")
-            if param.annotation not in self.html_type:
+            if param.annotation not in self.dtypes:
                 raise CallbackError(
                     f"The type defined in the '{name}' parameter, "
                     f"{param.annotation}, is not supported"
@@ -96,9 +109,9 @@ class Server:
                     f"but the type of the default value is {type(param.default)}."
                 )
 
-    def execute_callback(self, *args, **kwargs):
+    def callback(self, **kwargs: P.kwargs) -> Chart:
         try:
-            result = self.callback(*args, **kwargs)
+            result = self.callback_func(**kwargs)
         except Exception:
             raise CallbackError(
                 "An error occurred in the callback function\n\n"
@@ -114,12 +127,12 @@ class Server:
     def inject_form(self):
         input_tags = []
         for name, param in self.callback_signature.parameters.items():
-            to_html = self.html_type[param.annotation]
+            dtype = self.dtypes[param.annotation]
             input_tags.append(
                 f"""
             <div class="input">
                 <label for="{name}">{name}</label>
-                <input name="{name}" type="{to_html["type"]}" value="{to_html['encoder'](param.default)}">
+                <input name="{name}" type="{dtype["input"]}" value="{dtype['encoder'](param.default)}">
             </div>
             """
             )
@@ -133,19 +146,33 @@ class Server:
         """
         js.Function("createCustomParameterSection")(form_html)
 
-    def serve(self, port=5000):
-
-        @app.post("/parameter")
-        async def parameter(request: Request):
-            form_input = await request.json()
-            print(dict(form_input))
-            import time
-
-            time.sleep(3)
-            return {}
-
+    def create(self, **kwargs: P.kwargs):
+        """Create a frontend. If it was previously created, it will be overwritten."""
         js.clear_inject()
-        chart = self.execute_callback()
+        chart = self.callback(**kwargs)
         chart.show()
         self.inject_form()
-        uvicorn.run(app, port=port)
+
+
+def run(callback: Callable[..., Chart], port: int = 5000):
+    view = View(callback)
+    view.create()
+
+    app = FastAPI()
+    app.mount("/static", StaticFiles(directory=static_dir_path))
+    templates = Jinja2Templates(directory=static_dir_path)
+
+    @app.get("/", response_class=HTMLResponse)
+    async def root(request: Request):
+        return templates.TemplateResponse("main.html", {"request": request})
+
+    @app.post("/parameter")
+    async def parameter(request: Request):
+        form_input = await request.json()
+        print(dict(form_input))
+        import time
+
+        time.sleep(3)
+        return {"hello": True}
+
+    uvicorn.run(app, port=port)

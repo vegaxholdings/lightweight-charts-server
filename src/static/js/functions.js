@@ -1,4 +1,11 @@
+/**
+ * Class representing a loading UI component.
+ */
 class LoadingUI {
+    /**
+     * HTML content for the loading UI.
+     * @type {string}
+     */
     static html = `
         <svg id="loading-ui" class="loader" viewBox="0 0 24 24">
             <circle class="loader__value" cx="12" cy="12" r="10" />
@@ -11,42 +18,53 @@ class LoadingUI {
     `;
 
     /**
-     * @param {HTMLElement} loc 
+     * Create a loading UI instance.
+     * @param {HTMLElement} loc - The location to insert the loading UI.
      */
     constructor(loc) {
+        /** @type {HTMLElement} */
         this.loc = loc;
+        /** @type {boolean} */
         this.isOn = false;
     }
 
+    /**
+     * Turn on the loading UI.
+     * Adds the loading UI HTML to the specified location.
+     */
     on() {
         if (this.isOn) return;
-        this.loc.innerHTML += LoadingUI.html;
+        this.loc.insertAdjacentHTML('beforeend', LoadingUI.html);
         this.isOn = true;
     }
 
+    /**
+     * Turn off the loading UI.
+     * Removes the loading UI HTML from the specified location.
+     */
     off() {
         if (!this.isOn) return;
-        this.loc.querySelector("#loading-ui").remove();
+        const loadingElement = this.loc.querySelector("#loading-ui");
+        if (loadingElement) loadingElement.remove();
         this.isOn = false;
     }
 }
 
 /**
- * @param {HTMLFormElement} formElement 
- * @param {boolean} value
+ * Set or remove readonly attribute on input elements within a form.
+ * @param {HTMLFormElement} formElement - The form element containing the inputs.
+ * @param {boolean} value - True to set readonly, false to remove it.
  */
 const readonly = (formElement, value) => {
     formElement.querySelectorAll('input').forEach(input => {
-        if (value === true) {
-            input.setAttribute('readonly', true);
-        } else {
-            input.removeAttribute('readonly');
-        }
+        input.toggleAttribute('readonly', value);
     });
 };
 
 /**
- * @param {SubmitEvent} event 
+ * Handle form submission.
+ * Prevents default submission, shows loading UI, sends data to server, then hides loading UI.
+ * @param {SubmitEvent} event - The form submit event.
  */
 const submit = async (event) => {
     event.preventDefault();
@@ -66,14 +84,20 @@ const submit = async (event) => {
     submitButton.style.display = "none";
     loading.on();
     readonly(formElement, true);
-    await request;
+
+    const response = await request;
+    if (response.status !== 200) {
+        alert("An error occurred on the server! Check the server log");
+    }
+
     readonly(formElement, false);
     submitButton.style.display = "flex";
     loading.off();
 };
 
 /**
- * @param {string} form 
+ * Create a custom parameter section from a form HTML string.
+ * @param {string} form - The HTML string representing the form.
  */
 const createCustomParameterSection = (form) => {
     const dom = (new DOMParser()).parseFromString(form, 'text/html');

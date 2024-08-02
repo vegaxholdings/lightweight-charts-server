@@ -21,6 +21,7 @@ def make_chart(
     hello7: int = 10,
     dt8: datetime = datetime.now(),
     hello8: int = 10,
+    bool1: bool = True,
 ):
     chart = Chart()
     df = pd.read_csv(
