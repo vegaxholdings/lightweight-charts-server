@@ -44,12 +44,6 @@ async def root(request: Request):
     return templates.TemplateResponse("main.html", {"request": request})
 
 
-@app.post("/parameter")
-async def parameter(request: Request):
-    print(request)
-    return {}
-
-
 class CallbackError(Exception):
 
     def __init__(self, msg=""):
@@ -87,26 +81,24 @@ class Server:
         """Validation of parameters defined in callback function signature"""
         for name, param in self.callback_signature.parameters.items():
             if param.annotation is inspect._empty:
-                raise CallbackError(
-                    f"No type definition exists for parameter '{name}'!"
-                )
+                raise CallbackError(f"No type definition exists for parameter '{name}'")
             if param.annotation not in self.html_type:
                 raise CallbackError(
                     f"The type defined in the '{name}' parameter, "
-                    f"{param.annotation}, is not supported!"
+                    f"{param.annotation}, is not supported"
                 )
             if param.default is inspect._empty:
-                raise CallbackError(f"No default value defined for parameter '{name}'!")
+                raise CallbackError(f"No default value defined for parameter '{name}'")
             if not isinstance(param.default, param.annotation):
                 raise CallbackError(
-                    f"The type defined in the '{name}' parameter is different from the default type!\n"
+                    f"The type defined in the '{name}' parameter is different from the default type\n"
                     f"Detail: The type defined for the '{name}' parameter is {param.annotation}, "
                     f"but the type of the default value is {type(param.default)}."
                 )
 
-    def execute_callback(self):
+    def execute_callback(self, *args, **kwargs):
         try:
-            result = self.callback()
+            result = self.callback(*args, **kwargs)
         except Exception:
             raise CallbackError(
                 "An error occurred in the callback function\n\n"
@@ -127,18 +119,31 @@ class Server:
                 f"""
             <div class="input">
                 <label for="{name}">{name}</label>
-                <input type="{to_html["type"]}" value="{to_html['encoder'](param.default)}">
+                <input name="{name}" type="{to_html["type"]}" value="{to_html['encoder'](param.default)}">
             </div>
             """
             )
         form_html = f""" 
             <form method="post" action="/parameter">
                 {"".join(input_tags)}
+                <div class="submit">
+                    <button type="submit">Apply</button>
+                </div>
             </form>
         """
         js.Function("createCustomParameterSection")(form_html)
 
     def serve(self, port=5000):
+
+        @app.post("/parameter")
+        async def parameter(request: Request):
+            form_input = await request.json()
+            print(dict(form_input))
+            import time
+
+            time.sleep(3)
+            return {}
+
         js.clear_inject()
         chart = self.execute_callback()
         chart.show()
