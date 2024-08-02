@@ -249,16 +249,16 @@ body {
 	position: absolute;
 	z-index: 100;
 	top: 0;
-	left: 30%;
+	left: 0;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	color: white;
-	width: 40%;
+	width: 100%;
 }
 
 #custom-parameter>form {
-	background-color: rgba(255, 255, 255, 0.2);
+	background-color: rgba(15, 1, 28, 0.8);
 	padding: 20px;
 	display: none;
 	width: 100%;
@@ -267,6 +267,23 @@ body {
 
 #custom-parameter.toggled>form {
 	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+#custom-parameter>form>.input {
+	margin: 5px;
+	padding: 5px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+#custom-parameter>form>.input>label {
+	font-size: 18px;
+	margin-bottom: 7px;
 }
 
 #custom-parameter>button {
@@ -283,6 +300,11 @@ body {
 	height: 20px;
 	align-items: center;
 	justify-content: center;
+}
+
+#custom-parameter.toggled>button {
+	background-color: rgb(15, 1, 28);
+	opacity: 0.8;
 }
 
 #custom-parameter>button:hover {

@@ -1,8 +1,8 @@
 """ 
-A module that can inject JS code or import and execute functions defined in JS. 
+### A module that can inject JS code or import and execute functions defined in JS. 
 
-JS code injection communicates with the js/inject.js module.
-Write the function you want to execute in js/functions.js
+- JS code injection uses js/inject.js.
+- Interactive JS functions are defined in js/functions.js.
 """
 
 from pathlib import Path

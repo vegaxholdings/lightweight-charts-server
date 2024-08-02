@@ -49,14 +49,32 @@ async def parameter(request: Request):
     return {}
 
 
+class CallbackError(Exception):
+
+    def __init__(self, msg=""):
+        super().__init__(msg)
+        self.msg = msg
+
+    def __str__(self):
+        return (
+            f"Callback function signature is incorrect.\n"
+            f"------------- Please fix the callback function as per the message below. -------------\n\n"
+            f"{self.msg}"
+            f"\n\n======================================================================================="
+        )
+
+
 class Server:
 
-    input_type = {
-        int: "number",
-        float: "number",
-        str: "text",
-        bool: "checkbox",
-        datetime: "time",
+    html_type = {
+        int: {"type": "number", "encoder": lambda x: x},
+        float: {"type": "number", "encoder": lambda x: x},
+        str: {"type": "text", "encoder": lambda x: x},
+        bool: {"type": "checkbox", "encoder": lambda x: str(x).lower()},
+        datetime: {
+            "type": "datetime-local",
+            "encoder": lambda x: x.strftime("%Y-%m-%dT%H:%M:%S"),
+        },
     }
 
     def __init__(self, callback: Callable[..., Chart]):
@@ -64,25 +82,41 @@ class Server:
         self.callback_signature = inspect.signature(callback)
 
     def inject_form(self):
-        input_list = []
+        input_tags = []
         for name, param in self.callback_signature.parameters.items():
             if param.annotation is inspect._empty:
-                raise KeyError(f"{name} 매개변수에 타입을 제공해주세요!")
-            if param.annotation not in self.input_type:
-                raise KeyError(f"{param.annotation} 타입은 지원되지 않습니다!")
-            input_list.append(
+                raise CallbackError(
+                    f"No type definition exists for parameter '{name}'!"
+                )
+            if param.annotation not in self.html_type:
+                raise CallbackError(
+                    f"The type defined in the '{name}' parameter, "
+                    f"{param.annotation}, is not supported!"
+                )
+            default = ""
+            if param.default is not inspect._empty:
+                default = param.default
+                if not isinstance(param.default, param.annotation):
+                    raise CallbackError(
+                        f"The type defined in the '{name}' parameter is different from the default type!\n"
+                        f"Detail: The type defined for the '{name}' parameter is {param.annotation}, "
+                        f"but the type of the default value is {type(param.default)}."
+                    )
+            to_html = self.html_type[param.annotation]
+            input_tags.append(
                 f"""
-            <label for="{name}">{name}:</label>
-            <input type="{self.input_type[param.annotation]}>"
+            <div class="input">
+                <label for="{name}">{name}</label>
+                <input type="{to_html["type"]}" value="{to_html['encoder'](default)}">
+            </div>
             """
             )
         form_html = f""" 
             <form method="post" action="/parameter">
-                {"".join(input_list)}
+                {"".join(input_tags)}
             </form>
         """
-        target_js_func = js.Function("createCustomParameterSection")
-        target_js_func(form_html)
+        js.Function("createCustomParameterSection")(form_html)
 
     def serve(self, port=5000):
         js.clear_inject()
