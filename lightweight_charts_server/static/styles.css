@@ -2,7 +2,7 @@
 
 #custom-parameter {
     position: absolute;
-    z-index: 100;
+    z-index: 999999;
     top: 0;
     left: 0;
     display: flex;

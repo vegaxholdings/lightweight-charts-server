@@ -1,1 +1,1 @@
-from .main import run
+from lightweight_charts_server.main import Server

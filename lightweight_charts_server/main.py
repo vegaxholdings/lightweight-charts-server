@@ -1,8 +1,10 @@
+import time
 import inspect
 import traceback
-from pathlib import Path
-from typing import Callable, ParamSpec
+import itertools
 from datetime import datetime
+from pprint import pformat
+from typing import Callable, ParamSpec
 
 import uvicorn
 from webview import util, window
@@ -12,28 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from lightweight_charts import Chart
 
-from src import js
-
-static_dir_path = Path(__file__).parent / "static"
-
-# Avoid memory re-references
-inject_pywebview = util.inject_pywebview
-evaluate_js = window.Window.evaluate_js
-
-
-def intercepted_inject_pywebview(*args, **kwargs):
-    print("inject pywebview!!")
-    js.inject_code(js_code := inject_pywebview(*args, **kwargs))
-    return js_code
-
-
-def intercepted_evaluate_js(self, script, *args, **kwargs):
-    js.inject_code(script)
-    return evaluate_js(self, script, *args, **kwargs)
-
-
-util.inject_pywebview = intercepted_inject_pywebview
-window.Window.evaluate_js = intercepted_evaluate_js
+from lightweight_charts_server import js
+from lightweight_charts_server.system import STATIC_DIR, log
 
 
 class CallbackError(Exception):
@@ -50,6 +32,33 @@ class CallbackError(Exception):
             f"\n\n======================================================================================="
         )
 
+
+# ========== Enables interception of JavaScript injected through webview. ==========
+
+inject_pywebview = util.inject_pywebview
+evaluate_js = window.Window.evaluate_js
+
+
+def _intercepted_inject_pywebview(*args, _cnt=itertools.count(), **kwargs):
+    js.inject_code(js_code := inject_pywebview(*args, **kwargs))
+    if next(_cnt):  # inject_pywebview is called more than once
+        raise CallbackError(
+            "The callback function must create only one Chart instance!\n"
+            "An error occurred because the given callback function created more than one Chart instance. "
+            "Please check and fix the callback function code."
+        )
+    return js_code
+
+
+def _intercepted_evaluate_js(self, script, *args, **kwargs):
+    js.inject_code(script)
+    return evaluate_js(self, script, *args, **kwargs)
+
+
+util.inject_pywebview = _intercepted_inject_pywebview
+window.Window.evaluate_js = _intercepted_evaluate_js
+
+# ==================================================================================
 
 P = ParamSpec("P")
 
@@ -112,12 +121,26 @@ class View:
                 )
 
     def callback(self, **kwargs: P.kwargs) -> Chart:
+        parameters = {
+            name: param.default
+            for name, param in self.callback_signature.parameters.items()
+        } | kwargs
+        param_repr = (
+            "---------- Parameters ----------\n\n"
+            + pformat(parameters)
+            + "\n\n--------------------------------"
+        )
         try:
-            result = self.callback_func(**kwargs)
+            start = time.time()
+            result = self.callback_func(**parameters)
+            duration = time.time() - start
+            log.info(
+                f"Callback function executed in {duration:.2f} seconds\n" + param_repr
+            )
         except Exception:
             raise CallbackError(
                 "An error occurred in the callback function\n\n"
-                + traceback.format_exc()
+                f"{traceback.format_exc()}\n{param_repr}"
             )
         if not isinstance(result, Chart):
             raise CallbackError(
@@ -133,23 +156,33 @@ class View:
             input_tags.append(
                 f"""
             <div class="input">
-                <label for="{name}">{name}</label>
+                <label for="{name}">{name.replace("_", " ")}</label>
                 <input name="{name}" type="{dtype["input"]}" value="{dtype['encoder'](param.default)}">
             </div>
             """
             )
-        form_html = f""" 
-            <form method="post" action="/parameter">
-                {"".join(input_tags)}
-                <div class="submit">
-                    <button type="submit">Apply</button>
-                </div>
-            </form>
-        """
-        js.Function("createCustomParameterSection")(form_html)
+        inject = js.Function("createCustomParameterSection")
+        if input_tags:
+            inject(
+                f""" 
+                <form method="post" action="/parameter">
+                    {"".join(input_tags)}
+                    <div class="submit">
+                        <button type="submit">Apply</button>
+                    </div>
+                </form>
+            """
+            )
+        else:
+            inject(
+                """
+                <form>
+                    <p>There are no parameters defined in the callback function.</p>
+                </form>
+            """
+            )
 
-    def create(self, **kwargs: P.kwargs):
-        """Create a frontend. If it was previously created, it will be overwritten."""
+    def render(self, **kwargs: P.kwargs):
         if self.chart:
             self.chart.exit()
             del self.chart
@@ -159,29 +192,24 @@ class View:
         self.inject_form()
 
 
-app = FastAPI()
-app.mount("/static", StaticFiles(directory=static_dir_path))
-templates = Jinja2Templates(directory=static_dir_path)
+class Server:
 
+    def __init__(self, *, callback: Callable[..., Chart]):
+        self.view = View(callback)
 
-@app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse("main.html", {"request": request})
+    async def root(self, request: Request):
+        templates = Jinja2Templates(directory=STATIC_DIR)
+        return templates.TemplateResponse("main.html", {"request": request})
 
-
-def run(callback: Callable[..., Chart], port: int = 5000):
-    view = View(callback)
-    view.create()
-
-    @app.post("/parameter")
-    async def update_parameter(request: Request):
+    async def update_parameter(self, request: Request):
         parameter = await request.json()
-        import time
-
-        time.sleep(3)  # imitating real situations
-
-        view.create(**parameter)
-
+        self.view.render(**parameter)
         return {"result": "success"}
 
-    uvicorn.run(app, port=port)
+    def serve(self, port: int = 5000):
+        app = FastAPI()
+        app.mount("/static", StaticFiles(directory=STATIC_DIR))
+        app.get("/", response_class=HTMLResponse)(self.root)
+        app.post("/parameter")(self.update_parameter)
+        self.view.render()
+        uvicorn.run(app, port=port)
