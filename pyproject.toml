@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lightweight-charts-server"
+version = "0.0.195" # You must update before release push.
+description = "lightweight-chart custom python server"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.8"
+authors = [{ name = "Won JeongHoo", email = "clomia.sig@gmail.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent"
+]
+urls = { "Homepage" = "https://github.com/vegaxholdings/lightweight-charts-server" }
+dependencies = ["fastapi==0.111.1", "lightweight-charts==2.0.1"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lightweight_charts_server*"]
+
+[tool.setuptools.package-data]
+"*" = ["**/*"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["**/__pycache__", "**/*.pyc", "**/*.pyo", "**/*.DS_Store", "**/*/inject.js"]

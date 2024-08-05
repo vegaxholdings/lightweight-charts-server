@@ -93,6 +93,8 @@ const submit = async (event) => {
     readonly(formElement, false);
     submitButton.style.display = "flex";
     loading.off();
+
+    location.reload();
 };
 
 /**

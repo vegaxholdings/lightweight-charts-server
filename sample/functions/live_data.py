@@ -2,7 +2,7 @@ import pandas as pd
 from time import sleep
 from lightweight_charts import Chart
 
-import src
+import lightweight_charts_server
 
 if __name__ == "__main__":
 
@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     chart.set(df1)
 
-    src.run(lambda: chart)
+    lightweight_charts_server.run(lambda: chart)
 
     last_close = df1.iloc[-1]["close"]
 

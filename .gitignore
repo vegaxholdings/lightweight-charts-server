@@ -5,4 +5,4 @@ __pycache__
 .AppleDouble
 .LSOverride
 
-src/static/js/inject.js
+**/*/inject.js

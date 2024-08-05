@@ -1,7 +1,7 @@
 import pandas as pd
 from lightweight_charts import Chart
 
-import src
+import lightweight_charts_server
 
 
 def make_chart():
@@ -37,4 +37,4 @@ def make_chart():
 
 
 if __name__ == "__main__":
-    src.run(make_chart, port=8000)
+    lightweight_charts_server.run(make_chart, port=8000)

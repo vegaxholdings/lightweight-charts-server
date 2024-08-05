@@ -4,6 +4,12 @@ from lightweight_charts import Chart
 from datetime import datetime
 
 
+def calculate_sma(df, period: int = 50):
+    return pd.DataFrame(
+        {"time": df["date"], f"SMA {period}": df["close"].rolling(window=period).mean()}
+    ).dropna()
+
+
 def make_chart(
     dt: datetime = datetime.now(),
     hello: int = 10,
@@ -22,10 +28,26 @@ def make_chart(
     dt8: datetime = datetime.now(),
     hello8: int = 10,
     bool1: bool = True,
+    make_sma: bool = False,
 ):
     chart = Chart()
-    df = pd.read_csv(
-        "/Users/jeonghoowon/dev/chart-server/sample/data/setting_data_ohlcv.csv"
-    )
-    chart.set(df)
+    if not make_sma:
+        df = pd.read_csv(
+            "/Users/jeonghoowon/dev/chart-server/sample/data/setting_data_ohlcv.csv"
+        )
+        chart.set(df)
+    else:
+        df = pd.read_csv(
+            "/Users/jeonghoowon/dev/chart-server/sample/data/line_indicators_ohlcv.csv"
+        )
+        sma_data = calculate_sma(df, period=50)
+
+        chart = Chart()
+        chart.legend(visible=True)
+        chart.set(df)
+
+        line = chart.create_line("SMA 50")
+        line.set(sma_data)
+        return chart
+
     return chart

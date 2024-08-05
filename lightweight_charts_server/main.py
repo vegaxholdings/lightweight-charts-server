@@ -22,6 +22,7 @@ evaluate_js = window.Window.evaluate_js
 
 
 def intercepted_inject_pywebview(*args, **kwargs):
+    print("inject pywebview!!")
     js.inject_code(js_code := inject_pywebview(*args, **kwargs))
     return js_code
 
@@ -88,6 +89,7 @@ class View:
         self.callback_func = callback
         self.callback_signature = inspect.signature(callback)
         self.inspect_callback_signature()
+        self.chart: Chart | None = None
 
     def inspect_callback_signature(self):
         """Validation of parameters defined in callback function signature"""
@@ -148,31 +150,38 @@ class View:
 
     def create(self, **kwargs: P.kwargs):
         """Create a frontend. If it was previously created, it will be overwritten."""
+        if self.chart:
+            self.chart.exit()
+            del self.chart
         js.clear_inject()
-        chart = self.callback(**kwargs)
-        chart.show()
+        self.chart = self.callback(**kwargs)
+        self.chart.show()
         self.inject_form()
+
+
+app = FastAPI()
+app.mount("/static", StaticFiles(directory=static_dir_path))
+templates = Jinja2Templates(directory=static_dir_path)
+
+
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
+    return templates.TemplateResponse("main.html", {"request": request})
 
 
 def run(callback: Callable[..., Chart], port: int = 5000):
     view = View(callback)
     view.create()
 
-    app = FastAPI()
-    app.mount("/static", StaticFiles(directory=static_dir_path))
-    templates = Jinja2Templates(directory=static_dir_path)
-
-    @app.get("/", response_class=HTMLResponse)
-    async def root(request: Request):
-        return templates.TemplateResponse("main.html", {"request": request})
-
     @app.post("/parameter")
-    async def parameter(request: Request):
-        form_input = await request.json()
-        print(dict(form_input))
+    async def update_parameter(request: Request):
+        parameter = await request.json()
         import time
 
-        time.sleep(3)
-        return {"hello": True}
+        time.sleep(3)  # imitating real situations
+
+        view.create(**parameter)
+
+        return {"result": "success"}
 
     uvicorn.run(app, port=port)
