@@ -49,3 +49,18 @@ log_handler = LogHandler()
 log_handler.setFormatter(formatter)
 log_handler.setLevel(logging.DEBUG)
 log.addHandler(log_handler)
+
+
+class CallbackError(Exception):
+
+    def __init__(self, msg=""):
+        super().__init__(msg)
+        self.msg = msg
+
+    def __str__(self):
+        return (
+            f"Invalid callback function\n"
+            f"------------- Please fix the callback function as per the message below. -------------\n\n"
+            f"{self.msg}"
+            f"\n\n======================================================================================="
+        )
