@@ -12,10 +12,12 @@ from lightweight_charts_server.system import STATIC_DIR, RENDER_CHUNKS_DIR
 
 class Server:
 
-    def __init__(self, display: View | Stream):
+    def __init__(self, display: View | Stream, host: str = "0.0.0.0", port: int = 80):
+        self.port = port
+        self.host = host
+
         self.display = display
         self.display_type = display.__class__
-
         if self.display_type not in [View, Stream]:
             raise TypeError(f"{self.display_type} is not a valid display type.")
 
@@ -44,7 +46,7 @@ class Server:
                 await websocket.send_text(script)
                 base_chunk_cnt = chunk_cnt
 
-    def serve(self, port: int = 5000):
+    def serve(self):
         app = FastAPI()
         app.mount("/static", StaticFiles(directory=STATIC_DIR))
         app.get("/", response_class=HTMLResponse)(self.root)
@@ -54,4 +56,4 @@ class Server:
         elif self.display_type == Stream:
             app.websocket("/ws")(self.websocket_endpoint)
             self.display.render()
-        uvicorn.run(app, port=port)
+        uvicorn.run(app, host=self.host, port=self.port)

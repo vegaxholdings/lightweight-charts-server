@@ -4,7 +4,6 @@ import inspect
 import traceback
 import itertools
 import threading
-from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import partial
 from typing import Callable, ParamSpec
@@ -208,6 +207,23 @@ class Stream:
     ):
         self.creator = creator
         self.updater = updater
+        self.inspect_callback_signature()
+
+    def inspect_callback_signature(self):
+        creator_signature = inspect.signature(self.creator)
+        updater_signature = inspect.signature(self.updater)
+        updater_params = dict(updater_signature.parameters)
+
+        if creator_signature.parameters:
+            raise CallbackError("The creator function must not have any parameters.")
+        if len(updater_params) != 1:
+            raise CallbackError(
+                "The updater function must have one Chart type parameter."
+            )
+        if tuple(updater_params.values())[0].annotation != Chart:
+            raise CallbackError(
+                "There is no Chart type annotation in the updater function parameter."
+            )
 
     def callback(self):
         try:

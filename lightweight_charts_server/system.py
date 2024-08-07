@@ -68,7 +68,7 @@ class CallbackError(Exception):
 
     def __str__(self):
         return (
-            f"Invalid callback function\n"
+            f"Invalid callback function\n\n"
             f"------------- Please fix the callback function as per the message below. -------------\n\n"
             f"{self.msg}"
             f"\n\n======================================================================================="
