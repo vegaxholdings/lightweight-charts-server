@@ -5,5 +5,5 @@ __pycache__
 .AppleDouble
 .LSOverride
 
-**/*/render
-**/*/render.js
+render
+render.js

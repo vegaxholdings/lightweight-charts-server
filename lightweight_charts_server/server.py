@@ -1,5 +1,4 @@
 import asyncio
-from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
@@ -7,8 +6,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from lightweight_charts_server.render import View, render_js_list, Stream
-from lightweight_charts_server.system import STATIC_DIR, RENDER_DIR
+from lightweight_charts_server.render import View, Stream
+from lightweight_charts_server.system import STATIC_DIR
 
 
 class Server:
@@ -40,5 +39,5 @@ class Server:
         app.post("/parameter")(self.update_parameter)
         app.websocket("/ws")(self.websocket_endpoint)
         self.view.render()
-        self.stream.callback(self.view.chart)
+        self.stream.start(self.view.chart)
         uvicorn.run(app, port=port)

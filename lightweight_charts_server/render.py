@@ -11,30 +11,24 @@ from typing import Callable, ParamSpec
 from webview import util, window
 from lightweight_charts import Chart
 
-from lightweight_charts_server.system import RENDER_DIR, RENDER_JS, log, CallbackError
-
-
-def render_js_list():
-    files = [file.name for file in RENDER_DIR.iterdir() if file.suffix == ".js"]
-    return sorted(files, key=lambda x: int(x.split(".")[0]))
+from lightweight_charts_server.system import CallbackError
+from lightweight_charts_server.system import init_render, log
+from lightweight_charts_server.system import RENDER_CHUNKS_DIR, RENDER_JS
 
 
 def inject_js(js_code: str):
-    js_list = render_js_list()
-    next_filenum = int(js_list[-1].split(".")[0]) + 1 if js_list else 0
-    next_filename = str(next_filenum) + ".js"
-    (RENDER_DIR / next_filename).write_text(js_code)
-
+    # update chunks
+    chunk_names = sorted(
+        [file.name for file in RENDER_CHUNKS_DIR.iterdir() if file.suffix == ".js"],
+        key=lambda x: int(x.split(".")[0]),
+    )
+    next_chunk_num = int(chunk_names[-1].split(".")[0]) + 1 if chunk_names else 0
+    next_chunk_filename = str(next_chunk_num) + ".js"
+    (RENDER_CHUNKS_DIR / next_chunk_filename).write_text(js_code)
+    # update index.js
     line = "\n/*" + "=" * 10 + "*/\n"
     before = RENDER_JS.read_text() if RENDER_JS.exists() else ""
     RENDER_JS.write_text(before + line + js_code)
-
-
-def clear_js():
-    if RENDER_DIR.exists():
-        for file in RENDER_DIR.iterdir():
-            if file.is_file():
-                file.unlink()
 
 
 class JSFunction:
@@ -52,7 +46,7 @@ inject_pywebview = util.inject_pywebview
 evaluate_js = window.Window.evaluate_js
 
 
-def _intercepted_inject_pywebview(*args, _cnt=itertools.count(), **kwargs):
+def tracked_inject_pywebview(*args, _cnt=itertools.count(), **kwargs):
     inject_js(js_code := inject_pywebview(*args, **kwargs))
     if next(_cnt):  # inject_pywebview is called more than once
         raise CallbackError(
@@ -63,13 +57,13 @@ def _intercepted_inject_pywebview(*args, _cnt=itertools.count(), **kwargs):
     return js_code
 
 
-def _intercepted_evaluate_js(self, script, *args, **kwargs):
-    inject_js(script)
-    return evaluate_js(self, script, *args, **kwargs)
+def tracked_evaluate_js(self, js_code: str, *args, **kwargs):
+    inject_js(js_code)
+    return evaluate_js(self, js_code, *args, **kwargs)
 
 
-util.inject_pywebview = _intercepted_inject_pywebview
-window.Window.evaluate_js = _intercepted_evaluate_js
+util.inject_pywebview = tracked_inject_pywebview
+window.Window.evaluate_js = tracked_evaluate_js
 
 P = ParamSpec("P")
 
@@ -106,7 +100,7 @@ class View:
     }
 
     def __init__(self, callback: Callable[P, Chart]):
-        self.callback_func = callback
+        self.callback_origin = callback
         self.callback_signature = inspect.signature(callback)
         self.inspect_callback_signature()
         self.chart: Chart | None = None
@@ -143,7 +137,7 @@ class View:
         )
         try:
             start = time.time()
-            result = self.callback_func(**parameters)
+            result = self.callback_origin(**parameters)
             duration = time.time() - start
             log.info(
                 f"Callback function executed in {duration:.2f} seconds\n" + param_repr
@@ -197,7 +191,7 @@ class View:
         if self.chart:
             self.chart.exit()
             del self.chart
-        clear_js()
+        init_render()
         self.chart = self.callback(**kwargs)
         self.chart.show()
         self.inject_form()
@@ -205,9 +199,22 @@ class View:
 
 class Stream:
 
-    def __init__(self, callback):
-        self.callback_func = callback
+    def __init__(self, *, streamer: Callable[[Chart], ...]):
+        self.streamer_origin = streamer
 
-    def callback(self, chart):
-        thread = threading.Thread(target=partial(self.callback_func, chart))
+    def streamer(self, chart: Chart) -> Chart:
+        try:
+            log.info(f"Start streamer")
+            start = time.time()
+            self.streamer_origin(chart)
+            duration = time.time() - start
+            log.info(f"Streamer ends {duration:.2f} seconds\n")
+        except Exception:
+            raise CallbackError(
+                "An error occurred in the streamer function\n\n"
+                + traceback.format_exc()
+            )
+
+    def start(self, chart):
+        thread = threading.Thread(target=partial(self.streamer, chart))
         thread.start()

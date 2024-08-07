@@ -33,5 +33,5 @@ def update(chart: Chart):
 
 if __name__ == "__main__":
 
-    server = Server(view=View(callback=render), stream=Stream(callback=update))
-    server.serve(port=8000)
+    server = Server(view=View(callback=render), stream=Stream(streamer=update))
+    server.serve(port=5000)

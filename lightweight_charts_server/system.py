@@ -1,17 +1,23 @@
 import os
+import shutil
 import logging
 from datetime import datetime
 from pathlib import Path
 
 import psutil
 
-
 ROOT = Path(__file__).parent
 STATIC_DIR = ROOT / "static"
 RENDER_DIR = STATIC_DIR / "render"
-RENDER_JS = STATIC_DIR / "render.js"
+RENDER_JS = RENDER_DIR / "index.js"
+RENDER_CHUNKS_DIR = RENDER_DIR / "chunks"
 
-RENDER_DIR.mkdir(exist_ok=True)
+
+def init_render():
+    if RENDER_DIR.exists():
+        shutil.rmtree(RENDER_DIR)
+    RENDER_CHUNKS_DIR.mkdir(parents=True)
+    RENDER_JS.write_text("")
 
 
 class LogHandler(logging.NullHandler):
