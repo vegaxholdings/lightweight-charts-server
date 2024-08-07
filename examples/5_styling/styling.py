@@ -11,8 +11,6 @@ directory = Path(__file__).parent
 def render():
     chart = Chart()
 
-    df = pd.read_csv(directory / "ohlcv.csv")
-
     chart.layout(
         background_color="#090008",
         text_color="#FFFFFF",
@@ -43,6 +41,7 @@ def render():
 
     chart.legend(visible=True, font_size=14)
 
+    df = pd.read_csv(directory / "ohlcv.csv")
     chart.set(df)
     return chart
 
