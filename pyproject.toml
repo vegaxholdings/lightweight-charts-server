@@ -7,7 +7,7 @@ name = "lightweight-charts-server"
 version = "0.0.2" # You must update before release push.
 description = "lightweight-chart custom python server"
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 authors = [{ name = "Won JeongHoo", email = "clomia.sig@gmail.com" }]
 classifiers = [
     "Programming Language :: Python :: 3",
