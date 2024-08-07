@@ -247,7 +247,7 @@ class Stream:
             start = time.time()
             self.updater(created)
             duration = time.time() - start
-            log.warn(
+            log.info(
                 f"Updater function has finished. It ran for {duration:.2f} seconds."
             )
         except Exception:
