@@ -11,9 +11,9 @@ pip install lightweight-charts-server
 
 ### Examples
 
-**Examples of usage are in [examples/](examples/)**
+Examples of usage are in [examples/](examples/)
 
-*Get examples through git clone*
+**Get examples through git clone**
 ```
 git clone https://github.com/vegaxholdings/lightweight-charts-server.git
 
