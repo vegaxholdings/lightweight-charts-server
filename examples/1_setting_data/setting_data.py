@@ -1,11 +1,21 @@
+from pathlib import Path
+
 import pandas as pd
+
 from lightweight_charts import Chart
+from lightweight_charts_server import View, Server
 
-if __name__ == '__main__':
+directory = Path(__file__).parent
+
+
+def render():
     chart = Chart()
-
-    # Columns: time | open | high | low | close | volume
-    df = pd.read_csv('ohlcv.csv')
+    df = pd.read_csv(directory / "ohlcv.csv")
     chart.set(df)
+    return chart
 
-    chart.show(block=True)
+
+if __name__ == "__main__":
+    display = View(callback=render)
+    server = Server(display)
+    server.serve()

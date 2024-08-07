@@ -6,15 +6,18 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from lightweight_charts_server.render import View, Stream
+from lightweight_charts_server.display import View, Stream
 from lightweight_charts_server.system import STATIC_DIR, RENDER_CHUNKS_DIR
 
 
 class Server:
 
-    def __init__(self, *, view: View, stream: Stream):
-        self.view = view
-        self.stream = stream
+    def __init__(self, display: View | Stream):
+        self.display = display
+        self.display_type = display.__class__
+
+        if self.display_type not in [View, Stream]:
+            raise TypeError(f"{self.display_type} is not a valid display type.")
 
     async def root(self, request: Request):
         template = Jinja2Templates(directory=STATIC_DIR)
@@ -22,7 +25,7 @@ class Server:
 
     async def update_parameter(self, request: Request):
         parameter = await request.json()
-        self.view.render(**parameter)
+        self.display.render(**parameter)
         return {"result": "success"}
 
     async def websocket_endpoint(self, websocket: WebSocket):
@@ -45,8 +48,10 @@ class Server:
         app = FastAPI()
         app.mount("/static", StaticFiles(directory=STATIC_DIR))
         app.get("/", response_class=HTMLResponse)(self.root)
-        app.post("/parameter")(self.update_parameter)
-        app.websocket("/ws")(self.websocket_endpoint)  # 스트림 없으면 끄자
-        self.view.render()
-        self.stream.start(self.view.chart)
+        if self.display_type == View:
+            app.post("/parameter")(self.update_parameter)
+            self.display.render()
+        elif self.display_type == Stream:
+            app.websocket("/ws")(self.websocket_endpoint)
+            self.display.render()
         uvicorn.run(app, port=port)

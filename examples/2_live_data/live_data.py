@@ -1,19 +1,18 @@
-from time import sleep
+import time
+from pathlib import Path
 
 import pandas as pd
 from lightweight_charts import Chart
-from lightweight_charts_server import Server, View, Stream
+from lightweight_charts_server import Server, Stream
 
-df1 = pd.read_csv(
-    "/Users/jeonghoowon/dev/lightweight-charts-server/examples/2_live_data/ohlcv.csv"
-)
-df2 = pd.read_csv(
-    "/Users/jeonghoowon/dev/lightweight-charts-server/examples/2_live_data/next_ohlcv.csv"
-)
+directory = Path(__file__).parent
+
+df1 = pd.read_csv(directory / "ohlcv.csv")
+df2 = pd.read_csv(directory / "next_ohlcv.csv")
 
 
-def render(hello: str = "hi", sma: bool = True):
-    chart = Chart()
+def create():
+    chart = Chart(toolbox=True)
     chart.set(df1)
     return chart
 
@@ -28,10 +27,10 @@ def update(chart: Chart):
             chart.marker(text="The price crossed $20!")
 
         last_close = series["close"]
-        sleep(0.1)
+        time.sleep(0.1)
 
 
 if __name__ == "__main__":
-
-    server = Server(view=View(callback=render), stream=Stream(streamer=update))
-    server.serve(port=4000)
+    display = Stream(creator=create, updater=update)
+    server = Server(display)
+    server.serve()

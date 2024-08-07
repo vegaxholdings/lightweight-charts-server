@@ -4,6 +4,7 @@ import inspect
 import traceback
 import itertools
 import threading
+from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import partial
 from typing import Callable, ParamSpec
@@ -199,22 +200,46 @@ class View:
 
 class Stream:
 
-    def __init__(self, *, streamer: Callable[[Chart], ...]):
-        self.streamer_origin = streamer
+    def __init__(
+        self,
+        *,
+        creator: Callable[[], Chart],
+        updater: Callable[[Chart], ...],
+    ):
+        self.creator = creator
+        self.updater = updater
 
-    def streamer(self, chart: Chart) -> Chart:
+    def callback(self):
         try:
-            log.info(f"Start streamer")
             start = time.time()
-            self.streamer_origin(chart)
+            created = self.creator()
             duration = time.time() - start
-            log.info(f"Streamer ends {duration:.2f} seconds\n")
+            log.info(f"Creator function executed in {duration:.2f} seconds")
+        except:
+            raise CallbackError(
+                "An error occurred in the creator function\n\n"
+                f"{traceback.format_exc()}"
+            )
+        if not isinstance(created, Chart):
+            raise CallbackError(
+                "The creator function must return a Chart object.\n\n"
+                f"Return of creator function: {created}"
+            )
+        created.show()
+        try:
+            log.info(f"Updater function start")
+            start = time.time()
+            self.updater(created)
+            duration = time.time() - start
+            log.warn(
+                f"Updater function has finished. It ran for {duration:.2f} seconds."
+            )
         except Exception:
             raise CallbackError(
-                "An error occurred in the streamer function\n\n"
-                + traceback.format_exc()
+                "An error occurred in the updater function\n\n" + traceback.format_exc()
             )
 
-    def start(self, chart):
-        thread = threading.Thread(target=partial(self.streamer, chart))
-        thread.start()
+    def render(self):
+        init_render()
+        self.thread = threading.Thread(target=partial(self.callback))
+        self.thread.start()
