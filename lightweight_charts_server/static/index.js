@@ -128,5 +128,8 @@ const createCustomParameterSection = (form) => {
 
 websocket = new WebSocket(`ws://${location.host}/ws`);
 websocket.onopen = (event) => console.log("open",event)
-websocket.onmessage = (event) => console.log("msg",event)
+websocket.onmessage = (event) => {
+    console.log(event)
+    eval(event.data)
+}
 websocket.onclose = (event) => console.log("close",event)

@@ -19,7 +19,7 @@ from lightweight_charts_server.system import RENDER_CHUNKS_DIR, RENDER_JS
 def inject_js(js_code: str):
     # update chunks
     chunk_names = sorted(
-        [file.name for file in RENDER_CHUNKS_DIR.iterdir() if file.suffix == ".js"],
+        [file.name for file in RENDER_CHUNKS_DIR.iterdir()],
         key=lambda x: int(x.split(".")[0]),
     )
     next_chunk_num = int(chunk_names[-1].split(".")[0]) + 1 if chunk_names else 0

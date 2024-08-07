@@ -12,7 +12,7 @@ df2 = pd.read_csv(
 )
 
 
-def render(hello: str = "hi"):
+def render(hello: str = "hi", sma: bool = True):
     chart = Chart()
     chart.set(df1)
     return chart
@@ -34,4 +34,4 @@ def update(chart: Chart):
 if __name__ == "__main__":
 
     server = Server(view=View(callback=render), stream=Stream(streamer=update))
-    server.serve(port=5000)
+    server.serve(port=4000)
