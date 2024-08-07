@@ -1,20 +1,30 @@
-> 초안입니다.
+## lightweight-charts-server
 
-### 샘플 실행해보기
+[lightweight-charts-python](https://github.com/louisnw01/lightweight-charts-python) based chart hosting library
+
+### Installation
 
 ```
-python setting_data.py
-
-python line_indicators.py
-
-python styling.py
+pip install lightweight-charts-server
 ```
 
-### Development convention
 
-- 브랜치
-    - release: 절대 오류나면 안되는, pypi에 배포되는 소스코드 (CI/CD 파이프라인에 연동됨)
-    - main: 오류 나면 안되는 git clone 대상 브랜치
-    - dev: 오류 나도 상관 없는 개발 브랜치
+### Examples
 
-- 의존성: pyproject.toml에서 project 섹션의 dependencies 리스트 인스톨하면 됨
+Examples of usage are in [examples/](examples/)
+
+**Get examples through git clone**
+```
+git clone https://github.com/vegaxholdings/lightweight-charts-server.git
+
+cd lightweight-charts-server
+
+pip install -r requirements.txt
+```
+
+**Run Examples**
+1. `python -m examples.1_setting_data.setting_data`  
+2. `python -m examples.2_live_data.live_data`  
+3. `python -m examples.3_tick_data.tick_data`  
+4. `python -m examples.4_line_indicators.line_indicators`  
+5. `python -m examples.5_styling.styling`  
