@@ -19,7 +19,6 @@ dependencies = [
     "fastapi==0.111.1", 
     "lightweight-charts==2.0.1", 
     "psutil==6.0.0",
-    "watchdog==4.0.1",
 ]
 
 [tool.setuptools.packages.find]
