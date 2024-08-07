@@ -1,8 +1,10 @@
-from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 from lightweight_charts import Chart
 from lightweight_charts_server import Server, View
+
+directory = Path(__file__).parent
 
 
 def calculate_sma(df, period: int = 50):
@@ -14,9 +16,7 @@ def calculate_sma(df, period: int = 50):
 def render(sma: bool = False):
     chart = Chart()
     chart.legend(visible=True)
-    df = pd.read_csv(
-        "/Users/jeonghoowon/dev/lightweight-charts-server/examples/4_line_indicators/ohlcv.csv"
-    )
+    df = pd.read_csv(directory / "ohlcv.csv")
     chart.set(df)
 
     if sma:
