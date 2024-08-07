@@ -3,24 +3,38 @@ import pprint
 import inspect
 import traceback
 import itertools
+import threading
 from datetime import datetime
+from functools import partial
 from typing import Callable, ParamSpec
 
 from webview import util, window
 from lightweight_charts import Chart
 
-from lightweight_charts_server.system import JS_DIR, log, CallbackError
+from lightweight_charts_server.system import RENDER_DIR, RENDER_JS, log, CallbackError
 
-inject_js_path = JS_DIR / "inject.js"
+
+def render_js_list():
+    files = [file.name for file in RENDER_DIR.iterdir() if file.suffix == ".js"]
+    return sorted(files, key=lambda x: int(x.split(".")[0]))
 
 
 def inject_js(js_code: str):
+    js_list = render_js_list()
+    next_filenum = int(js_list[-1].split(".")[0]) + 1 if js_list else 0
+    next_filename = str(next_filenum) + ".js"
+    (RENDER_DIR / next_filename).write_text(js_code)
+
     line = "\n/*" + "=" * 10 + "*/\n"
-    inject_js_path.write_text(inject_js_path.read_text() + line + js_code)
+    before = RENDER_JS.read_text() if RENDER_JS.exists() else ""
+    RENDER_JS.write_text(before + line + js_code)
 
 
 def clear_js():
-    inject_js_path.write_text("")
+    if RENDER_DIR.exists():
+        for file in RENDER_DIR.iterdir():
+            if file.is_file():
+                file.unlink()
 
 
 class JSFunction:
@@ -187,3 +201,13 @@ class View:
         self.chart = self.callback(**kwargs)
         self.chart.show()
         self.inject_form()
+
+
+class Stream:
+
+    def __init__(self, callback):
+        self.callback_func = callback
+
+    def callback(self, chart):
+        thread = threading.Thread(target=partial(self.callback_func, chart))
+        thread.start()

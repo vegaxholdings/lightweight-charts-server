@@ -8,7 +8,10 @@ import psutil
 
 ROOT = Path(__file__).parent
 STATIC_DIR = ROOT / "static"
-JS_DIR = STATIC_DIR / "js"
+RENDER_DIR = STATIC_DIR / "render"
+RENDER_JS = STATIC_DIR / "render.js"
+
+RENDER_DIR.mkdir(exist_ok=True)
 
 
 class LogHandler(logging.NullHandler):
