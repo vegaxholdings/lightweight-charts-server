@@ -204,9 +204,11 @@ class Stream:
         chart: Chart,
         *,
         callback: Callable[[Chart], ...],
+        latency: float = 0.1,
     ):
         assert isinstance(chart, Chart)
         self.chart = chart
+        self.latency = latency
         self.callback_origin = callback
         self.callback_signature = inspect.signature(callback)
         self.inspect_callback_signature()

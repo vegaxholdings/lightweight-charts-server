@@ -16,7 +16,6 @@ class Server:
     def __init__(self, display: View | Stream, host: str = "0.0.0.0", port: int = 80):
         self.port = port
         self.host = host
-
         self.display = display
         self.display_type = display.__class__
         if self.display_type not in [View, Stream]:
@@ -35,7 +34,7 @@ class Server:
         await websocket.accept()
         base_chunk_cnt = sum(1 for _ in RENDER_CHUNKS_DIR.iterdir())
         while True:
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(self.display.latency)
             chunks = sorted(
                 [file for file in RENDER_CHUNKS_DIR.iterdir()],
                 key=lambda x: int(x.name.split(".")[0]),
