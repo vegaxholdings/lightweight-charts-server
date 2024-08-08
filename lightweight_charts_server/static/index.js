@@ -71,7 +71,7 @@ const submit = async (event) => {
     const formElement = event.target;
     const formData = new FormData(formElement);
     const data = Object.fromEntries(formData.entries());
-    const request = fetch(window.location.origin + '/parameter', {
+    const request = fetch(window.location.origin + '/view-parameter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -126,10 +126,5 @@ const createCustomParameterSection = (form) => {
     formElement.addEventListener("submit", submit);
 };
 
-websocket = new WebSocket(`ws://${location.host}/ws`);
-websocket.onopen = (event) => console.log("open",event)
-websocket.onmessage = (event) => {
-    console.log(event)
-    eval(event.data)
-}
-websocket.onclose = (event) => console.log("close",event)
+stream = new WebSocket(`ws://${location.host}/stream`);
+stream.onmessage = (event) => eval(event.data)

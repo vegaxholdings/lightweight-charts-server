@@ -5,7 +5,7 @@
 ### Installation
 
 ```
-pip install lightweight-charts-server
+pip install --upgrade lightweight-charts-server
 ```
 
 

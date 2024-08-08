@@ -16,7 +16,7 @@ classifiers = [
 ]
 urls = { "Homepage" = "https://github.com/vegaxholdings/lightweight-charts-server" }
 dependencies = [
-    "fastapi==0.111.1", 
+    "fastapi==0.112.0", 
     "lightweight-charts==2.0.1", 
     "psutil==6.0.0",
 ]

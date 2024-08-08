@@ -10,11 +10,8 @@ directory = Path(__file__).parent
 df1 = pd.read_csv(directory / "ohlc.csv")
 df2 = pd.read_csv(directory / "ticks.csv")
 
-
-def create():
-    chart = Chart()
-    chart.set(df1)
-    return chart
+chart = Chart()
+chart.set(df1)
 
 
 def update(chart: Chart):
@@ -24,6 +21,6 @@ def update(chart: Chart):
 
 
 if __name__ == "__main__":
-    display = Stream(creator=create, updater=update)
+    display = Stream(chart, callback=update)
     server = Server(display)
     server.serve()

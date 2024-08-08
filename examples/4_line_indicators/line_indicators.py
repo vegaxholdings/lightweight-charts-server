@@ -23,7 +23,6 @@ def render(sma: bool = False):
         line = chart.create_line("SMA 50")
         sma_data = calculate_sma(df, period=50)
         line.set(sma_data)
-
     return chart
 
 

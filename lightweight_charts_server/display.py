@@ -37,7 +37,7 @@ class JSFunction:
         self.name = name
 
     def __call__(self, *args):
-        """Currently only string input is supported. Python str object -> JS string object"""
+        """Currently only string arguments is supported. Python str object -> JS string object"""
         params = ",".join(f"`{arg}`" for arg in args)
         inject_js(f"{self.name}({params})")
 
@@ -201,26 +201,23 @@ class Stream:
 
     def __init__(
         self,
+        chart: Chart,
         *,
-        creator: Callable[[], Chart],
-        updater: Callable[[Chart], ...],
+        callback: Callable[[Chart], ...],
     ):
-        self.creator = creator
-        self.updater = updater
+        assert isinstance(chart, Chart)
+        self.chart = chart
+        self.callback_origin = callback
+        self.callback_signature = inspect.signature(callback)
         self.inspect_callback_signature()
 
     def inspect_callback_signature(self):
-        creator_signature = inspect.signature(self.creator)
-        updater_signature = inspect.signature(self.updater)
-        updater_params = dict(updater_signature.parameters)
-
-        if creator_signature.parameters:
-            raise CallbackError("The creator function must not have any parameters.")
-        if len(updater_params) != 1:
+        params = dict(self.callback_signature.parameters)
+        if len(params) != 1:
             raise CallbackError(
                 "The updater function must have one Chart type parameter."
             )
-        if tuple(updater_params.values())[0].annotation != Chart:
+        if tuple(params.values())[0].annotation != Chart:
             raise CallbackError(
                 "There is no Chart type annotation in the updater function parameter."
             )
@@ -228,34 +225,19 @@ class Stream:
     def callback(self):
         try:
             start = time.time()
-            created = self.creator()
-            duration = time.time() - start
-            log.info(f"Creator function executed in {duration:.2f} seconds")
-        except:
-            raise CallbackError(
-                "An error occurred in the creator function\n\n"
-                f"{traceback.format_exc()}"
-            )
-        if not isinstance(created, Chart):
-            raise CallbackError(
-                "The creator function must return a Chart object.\n\n"
-                f"Return of creator function: {created}"
-            )
-        created.show()
-        try:
-            log.info(f"Updater function start")
-            start = time.time()
-            self.updater(created)
+            self.callback_origin(self.chart)
             duration = time.time() - start
             log.info(
-                f"Updater function has finished. It ran for {duration:.2f} seconds."
+                f"Callback function has finished. It ran for {duration:.2f} seconds."
             )
         except Exception:
             raise CallbackError(
-                "An error occurred in the updater function\n\n" + traceback.format_exc()
+                "An error occurred in the callback function\n\n"
+                + traceback.format_exc()
             )
 
     def render(self):
         init_render()
-        self.thread = threading.Thread(target=partial(self.callback))
+        self.chart.show()
+        self.thread = threading.Thread(target=partial(self.callback), daemon=True)
         self.thread.start()
