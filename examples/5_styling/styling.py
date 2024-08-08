@@ -8,11 +8,11 @@ from lightweight_charts_server import Server, View
 directory = Path(__file__).parent
 
 
-def render():
+def render(background_color: str = "#090008"):
     chart = Chart()
 
     chart.layout(
-        background_color="#090008",
+        background_color=background_color,
         text_color="#FFFFFF",
         font_size=16,
         font_family="Helvetica",
