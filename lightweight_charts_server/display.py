@@ -17,6 +17,11 @@ from lightweight_charts_server.system import RENDER_CHUNKS_DIR, RENDER_JS
 
 
 def inject_js(js_code: str):
+    # update index.js
+    line = "\n/*" + "=" * 10 + "*/\n"
+    before = RENDER_JS.read_text() if RENDER_JS.exists() else ""
+    RENDER_JS.write_text(before + line + js_code)
+
     # update chunks
     chunk_names = sorted(
         [file.name for file in RENDER_CHUNKS_DIR.iterdir()],
@@ -25,10 +30,6 @@ def inject_js(js_code: str):
     next_chunk_num = int(chunk_names[-1].split(".")[0]) + 1 if chunk_names else 0
     next_chunk_filename = str(next_chunk_num) + ".js"
     (RENDER_CHUNKS_DIR / next_chunk_filename).write_text(js_code)
-    # update index.js
-    line = "\n/*" + "=" * 10 + "*/\n"
-    before = RENDER_JS.read_text() if RENDER_JS.exists() else ""
-    RENDER_JS.write_text(before + line + js_code)
 
 
 class JSFunction:
@@ -154,15 +155,16 @@ class View:
             )
         return result
 
-    def inject_form(self):
+    def inject_form(self, **kwargs):
         input_tags = []
         for name, param in self.callback_signature.parameters.items():
             dtype = self.dtypes[param.annotation]
+            value = kwargs.get(name, param.default)
             input_tags.append(
                 f"""
             <div class="input">
                 <label for="{name}">{name.replace("_", " ")}</label>
-                <input name="{name}" type="{dtype["input"]}" value="{dtype['encoder'](param.default)}">
+                <input name="{name}" type="{dtype["input"]}" value="{dtype['encoder'](value)}">
             </div>
             """
             )
@@ -194,7 +196,7 @@ class View:
         init_render()
         self.chart = self.callback(**kwargs)
         self.chart.show()
-        self.inject_form()
+        self.inject_form(**kwargs)
 
 
 class Stream:
