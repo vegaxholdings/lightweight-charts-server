@@ -4,13 +4,13 @@ import inspect
 import traceback
 import itertools
 import threading
-from datetime import datetime
+from typing import Callable
 from functools import partial
-from typing import Callable, ParamSpec
 
 from webview import util, window
 from lightweight_charts import Chart
 
+from lightweight_charts_server.ftype import FormType
 from lightweight_charts_server.system import CallbackError
 from lightweight_charts_server.system import init_render, log
 from lightweight_charts_server.system import RENDER_CHUNKS_DIR, RENDER_JS
@@ -66,41 +66,10 @@ def tracked_evaluate_js(self, js_code: str, *args, **kwargs):
 util.inject_pywebview = tracked_inject_pywebview
 window.Window.evaluate_js = tracked_evaluate_js
 
-P = ParamSpec("P")
-
 
 class View:
 
-    # Callback function parameter type processing definition
-    dtypes = {
-        int: {
-            "input": "number",  # Python type -> HTML input type
-            "encoder": lambda x: x,  # Callback parameter -> HTML input value
-            "decoder": lambda x: int(x),  # HTTP Request json -> Callback parameter
-        },
-        float: {
-            "input": "number",
-            "encoder": lambda x: x,
-            "decoder": lambda x: float(x),
-        },
-        str: {
-            "input": "text",
-            "encoder": lambda x: x,
-            "decoder": lambda x: str(x),
-        },
-        bool: {
-            "input": "checkbox",
-            "encoder": lambda x: str(x).lower(),
-            "decoder": lambda x: bool(x),
-        },
-        datetime: {
-            "input": "datetime-local",
-            "encoder": lambda x: x.strftime("%Y-%m-%dT%H:%M:%S"),
-            "decoder": lambda x: datetime.fromisoformat(x),
-        },
-    }
-
-    def __init__(self, callback: Callable[P, Chart]):
+    def __init__(self, callback: Callable[..., Chart]):
         self.callback_origin = callback
         self.callback_signature = inspect.signature(callback)
         self.inspect_callback_signature()
@@ -112,7 +81,7 @@ class View:
         for name, param in self.callback_signature.parameters.items():
             if param.annotation is inspect._empty:
                 raise CallbackError(f"No type definition exists for parameter '{name}'")
-            if param.annotation not in self.dtypes:
+            if not issubclass(param.annotation, FormType):
                 raise CallbackError(
                     f"The type defined in the '{name}' parameter, "
                     f"{param.annotation}, is not supported"
@@ -126,19 +95,16 @@ class View:
                     f"but the type of the default value is {type(param.default)}."
                 )
 
-    def callback(self, **kwargs: P.kwargs) -> Chart:
-        parameters = {
-            name: param.default
-            for name, param in self.callback_signature.parameters.items()
-        } | kwargs
+    def callback(self, params: dict) -> Chart:
+        assert set(self.callback_signature.parameters.keys()) == set(params.keys())
         param_repr = (
             "---------- Parameters ----------\n\n"
-            + pprint.pformat(parameters)
+            + pprint.pformat(params)
             + "\n\n--------------------------------"
         )
         try:
             start = time.time()
-            result = self.callback_origin(**parameters)
+            result = self.callback_origin(**params)
             duration = time.time() - start
             log.info(
                 f"Callback function executed in {duration:.2f} seconds\n" + param_repr
@@ -155,25 +121,17 @@ class View:
             )
         return result
 
-    def inject_form(self, **kwargs):
-        input_tags = []
-        for name, param in self.callback_signature.parameters.items():
-            dtype = self.dtypes[param.annotation]
-            value = kwargs.get(name, param.default)
-            input_tags.append(
-                f"""
-            <div class="input">
-                <label for="{name}">{name.replace("_", " ")}</label>
-                <input name="{name}" type="{dtype["input"]}" value="{dtype['encoder'](value)}">
-            </div>
-            """
-            )
-        js_create_custom_parameter_section = JSFunction("createCustomParameterSection")
-        if input_tags:
-            js_create_custom_parameter_section(
+    def inject_form(self, params: dict):
+        assert set(self.callback_signature.parameters.keys()) == set(params.keys())
+        intput_tags = [
+            f'<div class="input">{value.to_input(name)}</div>'
+            for name, value in params.items()
+        ]
+        if intput_tags:
+            JSFunction("createCustomParameterSection")(
                 f""" 
                 <form method="post" action="/parameter">
-                    {"".join(input_tags)}
+                    {"".join(intput_tags)}
                     <div class="submit">
                         <button type="submit">Apply</button>
                     </div>
@@ -181,7 +139,7 @@ class View:
             """
             )
         else:
-            js_create_custom_parameter_section(
+            JSFunction("createCustomParameterSection")(
                 """
                 <form>
                     <p>There are no parameters defined in the callback function.</p>
@@ -189,14 +147,20 @@ class View:
             """
             )
 
-    def render(self, **kwargs: P.kwargs):
+    def render(self, request: dict[str, str] = {}):
         if self.chart:
             self.chart.exit()
             del self.chart
         init_render()
-        self.chart = self.callback(**kwargs)
+        sig = self.callback_signature.parameters
+        default = {name: param.default for name, param in sig.items()}
+        params = default | {
+            name: sig[name].annotation.from_input(value)
+            for name, value in request.items()
+        }
+        self.chart = self.callback(params)
         self.chart.show()
-        self.inject_form(**kwargs)
+        self.inject_form(params)
 
 
 class Stream:

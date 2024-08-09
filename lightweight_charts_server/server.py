@@ -26,8 +26,7 @@ class Server:
         return template.TemplateResponse("index.html", {"request": request})
 
     async def view_router(self, request: Request):
-        parameter = await request.json()
-        self.display.render(**parameter)
+        self.display.render(await request.json())
         return {"result": "success"}
 
     async def stream_router(self, websocket: WebSocket):

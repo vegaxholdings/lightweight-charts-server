@@ -50,6 +50,21 @@ class LoadingUI {
     }
 }
 
+class FormParameter extends FormData {
+    async toJSON() {
+        const data = {};
+        for (const [key, value] of Array.from(this.entries())) {
+            if (value instanceof File && value.type === "text/csv") {
+                data[key] = await value.text();
+            } else {
+                data[key] = value;
+            }
+        }
+
+        return JSON.stringify(data);
+    }
+}
+
 /**
  * Set or remove readonly attribute on input elements within a form.
  * @param {HTMLFormElement} formElement - The form element containing the inputs.
@@ -69,13 +84,13 @@ const readonly = (formElement, value) => {
 const submit = async (event) => {
     event.preventDefault();
     const formElement = event.target;
-    const formData = new FormData(formElement);
-    const data = Object.fromEntries(formData.entries());
+    const parameter = new FormParameter(formElement);
     const request = fetch(window.location.origin + '/view-parameter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: await parameter.toJSON()
     });
+
 
     const submitDiv = formElement.querySelector(".submit");
     const submitButton = submitDiv.querySelector("button");
