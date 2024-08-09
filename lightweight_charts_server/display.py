@@ -10,7 +10,7 @@ import portalocker
 from webview import window
 from lightweight_charts import Chart
 
-from lightweight_charts_server.ftype import FormType
+from lightweight_charts_server import ftype
 from lightweight_charts_server.system import CallbackError
 from lightweight_charts_server.system import init_render, log
 from lightweight_charts_server.system import RENDER_JS, CHUNKS_DIR, CHUNKS_NUM
@@ -60,7 +60,7 @@ class View:
         for name, param in self.callback_signature.parameters.items():
             if param.annotation is inspect._empty:
                 raise CallbackError(f"No type definition exists for parameter '{name}'")
-            if not issubclass(param.annotation, FormType):
+            if not issubclass(param.annotation, ftype.FormType):
                 raise CallbackError(
                     f"The type defined in the '{name}' parameter, "
                     f"{param.annotation}, is not supported"
@@ -134,13 +134,18 @@ class View:
         if self.chart:
             self.chart.exit()
             del self.chart
-        init_render()
         sig = self.callback_signature.parameters
+        # A line of code to explicitly assign everything when running it for the first time.
         default = {name: param.default for name, param in sig.items()}
-        params = default | {
-            name: sig[name].annotation.from_input(value)
-            for name, value in request.items()
-        }
+        update = {}
+        for name, value in request.items():
+            if sig[name].annotation == ftype.DataFrame and not value:
+                # The default value of the file type is not passed to the Form.
+                # Therefore, continue so that param.default can be used as is.
+                continue
+            update[name] = sig[name].annotation.from_input(value)
+
+        params = default | update
         self.chart = self.callback(params)
         self.chart.show()
         self.inject_form(params)

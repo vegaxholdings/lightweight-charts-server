@@ -60,7 +60,6 @@ class FormParameter extends FormData {
                 data[key] = value;
             }
         }
-
         return JSON.stringify(data);
     }
 }

@@ -90,6 +90,8 @@ class DataFrame(pd.DataFrame, FormType):
 
     @classmethod
     def from_input(cls, value: str):
+        if not value:
+            return cls({})
         buffer = io.StringIO(value)
         df = pd.read_csv(buffer)
         return cls(df)
