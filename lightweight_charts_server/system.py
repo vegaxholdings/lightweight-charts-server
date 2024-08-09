@@ -10,14 +10,16 @@ ROOT = Path(__file__).parent
 STATIC_DIR = ROOT / "static"
 RENDER_DIR = STATIC_DIR / "render"
 RENDER_JS = RENDER_DIR / "index.js"
-RENDER_CHUNKS_DIR = RENDER_DIR / "chunks"
+CHUNKS_DIR = RENDER_DIR / "chunks"
+CHUNKS_NUM = RENDER_DIR / "chunk-num.lock"
 
 
 def init_render():
     if RENDER_DIR.exists():
         shutil.rmtree(RENDER_DIR)
-    RENDER_CHUNKS_DIR.mkdir(parents=True)
+    CHUNKS_DIR.mkdir(parents=True)
     RENDER_JS.write_text("")
+    CHUNKS_NUM.write_text("0")
 
 
 class LogHandler(logging.NullHandler):

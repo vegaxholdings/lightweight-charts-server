@@ -2,60 +2,40 @@ import time
 import pprint
 import inspect
 import traceback
-import itertools
 import threading
 from typing import Callable
 from functools import partial
 
-from webview import util, window
+import portalocker
+from webview import window
 from lightweight_charts import Chart
 
 from lightweight_charts_server.ftype import FormType
 from lightweight_charts_server.system import CallbackError
 from lightweight_charts_server.system import init_render, log
-from lightweight_charts_server.system import RENDER_CHUNKS_DIR, RENDER_JS
+from lightweight_charts_server.system import RENDER_JS, CHUNKS_DIR, CHUNKS_NUM
 
 
 def inject_js(js_code: str):
-    # update index.js
-    line = "\n/*" + "=" * 10 + "*/\n"
-    before = RENDER_JS.read_text() if RENDER_JS.exists() else ""
-    RENDER_JS.write_text(before + line + js_code)
-
-    # update chunks
-    chunk_names = sorted(
-        [file.name for file in RENDER_CHUNKS_DIR.iterdir()],
-        key=lambda x: int(x.split(".")[0]),
-    )
-    next_chunk_num = int(chunk_names[-1].split(".")[0]) + 1 if chunk_names else 0
-    next_chunk_filename = str(next_chunk_num) + ".js"
-    (RENDER_CHUNKS_DIR / next_chunk_filename).write_text(js_code)
-
-
-class JSFunction:
-
-    def __init__(self, name: str):
-        self.name = name
-
-    def __call__(self, *args):
-        """Currently only string arguments is supported. Python str object -> JS string object"""
-        params = ",".join(f"`{arg}`" for arg in args)
-        inject_js(f"{self.name}({params})")
+    # This code is injected inside pywebview and its environment is not safe for concurrency.
+    with portalocker.Lock(CHUNKS_NUM, timeout=1, mode="r+") as file:
+        # Ensures chunks are created in the correct units and order
+        before_chunk_num = int(file.read())
+        chunk_num = before_chunk_num + 1
+        chunk_filename = str(chunk_num) + ".js"
+        # create chunk
+        (CHUNKS_DIR / chunk_filename).write_text(js_code)
+        # update index.js
+        with RENDER_JS.open("a") as js:
+            js.write("\n\n" + js_code)
+        file.seek(0)
+        file.write(str(chunk_num))
+    # lightweight_charts sometimes generates invalid JS code,
+    # which is likely due to the read/write operations being exposed to concurrency.
+    # So, this also solves a fatal problem with lightweight_charts itself.
 
 
-inject_pywebview = util.inject_pywebview
 evaluate_js = window.Window.evaluate_js
-
-
-def tracked_inject_pywebview(*args, _cnt=itertools.count(), **kwargs):
-    inject_js(js_code := inject_pywebview(*args, **kwargs))
-    if next(_cnt):  # inject_pywebview is called more than once
-        raise CallbackError(
-            "The callback function must create only one Chart instance!\n"
-            "An error occurred because the given callback function created more than one Chart instance. "
-            "Please check and fix the callback function code."
-        )
-    return js_code
 
 
 def tracked_evaluate_js(self, js_code: str, *args, **kwargs):
@@ -63,7 +43,6 @@ def tracked_evaluate_js(self, js_code: str, *args, **kwargs):
     return evaluate_js(self, js_code, *args, **kwargs)
 
 
-util.inject_pywebview = tracked_inject_pywebview
 window.Window.evaluate_js = tracked_evaluate_js
 
 
@@ -128,22 +107,26 @@ class View:
             for name, value in params.items()
         ]
         if intput_tags:
-            JSFunction("createCustomParameterSection")(
+            inject_js(
                 f""" 
-                <form method="post" action="/parameter">
-                    {"".join(intput_tags)}
-                    <div class="submit">
-                        <button type="submit">Apply</button>
-                    </div>
-                </form>
+                createCustomParameterSection(`
+                    <form method="post" action="/parameter">
+                        {"".join(intput_tags)}
+                        <div class="submit">
+                            <button type="submit">Apply</button>
+                        </div>
+                    </form>
+                `)
             """
             )
         else:
-            JSFunction("createCustomParameterSection")(
-                """
-                <form>
-                    <p>There are no parameters defined in the callback function.</p>
-                </form>
+            inject_js(
+                f""" 
+                createCustomParameterSection(`
+                    <form>
+                        <p>There are no parameters defined in the callback function.</p>
+                    </form>
+                `)
             """
             )
 

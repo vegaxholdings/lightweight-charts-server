@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.websockets import WebSocketDisconnect
 
 from lightweight_charts_server.display import View, Stream
-from lightweight_charts_server.system import STATIC_DIR, RENDER_CHUNKS_DIR
+from lightweight_charts_server.system import STATIC_DIR, CHUNKS_DIR
 
 
 class Server:
@@ -31,11 +31,11 @@ class Server:
 
     async def stream_router(self, websocket: WebSocket):
         await websocket.accept()
-        base_chunk_cnt = sum(1 for _ in RENDER_CHUNKS_DIR.iterdir())
+        base_chunk_cnt = sum(1 for _ in CHUNKS_DIR.iterdir())
         while True:
             await asyncio.sleep(self.display.latency)
             chunks = sorted(
-                [file for file in RENDER_CHUNKS_DIR.iterdir()],
+                [file for file in CHUNKS_DIR.iterdir()],
                 key=lambda x: int(x.name.split(".")[0]),
             )
             chunk_cnt = len(chunks)
