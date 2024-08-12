@@ -22,6 +22,9 @@ def init_render():
     CHUNKS_NUM.write_text("0")
 
 
+init_render()
+
+
 class LogHandler(logging.NullHandler):
     pid = os.getpid()
 
