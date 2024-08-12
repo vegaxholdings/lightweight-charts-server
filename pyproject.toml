@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lightweight-charts-server"
-version = "0.0.217" # You must update before release push.
+version = "0.1.0" # You must update before release push.
 description = "lightweight-chart custom python server"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
@@ -20,6 +20,7 @@ dependencies = [
     "lightweight-charts==2.0.1", 
     "psutil==6.0.0",
     "portalocker==2.10.1",
+    "uvicorn==0.30.5",
 ]
 
 [tool.setuptools.packages.find]
