@@ -20,7 +20,8 @@ def update(chart: Chart):
         time.sleep(0.03)
 
 
+display = Stream(chart, callback=update)
+server = Server(display)
+
 if __name__ == "__main__":
-    display = Stream(chart, callback=update)
-    server = Server(display)
     server.serve()

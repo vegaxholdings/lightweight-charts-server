@@ -46,7 +46,8 @@ def render(background_color: ftype.Color = ftype.Color("#090008")):
     return chart
 
 
+display = View(callback=render)
+server = Server(display)
+
 if __name__ == "__main__":
-    display = View(callback=render)
-    server = Server(display)
     server.serve()

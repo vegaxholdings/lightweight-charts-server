@@ -29,7 +29,8 @@ def render(sma: ftype.Bool = ftype.Bool(False)):
     return chart
 
 
+display = View(callback=render)
+server = Server(display)
+
 if __name__ == "__main__":
-    display = View(callback=render)
-    server = Server(display)
     server.serve()
