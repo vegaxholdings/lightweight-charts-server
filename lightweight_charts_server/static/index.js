@@ -75,6 +75,10 @@ const readonly = (formElement, value) => {
     });
 };
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Handle form submission.
  * Prevents default submission, shows loading UI, sends data to server, then hides loading UI.
@@ -102,13 +106,15 @@ const submit = async (event) => {
     const response = await request;
     if (response.status !== 200) {
         alert("An error occurred on the server! Check the server log");
+    } else {
+        await sleep(2000)
+        // I did this because setTimeout did not work as expected.
     }
 
     readonly(formElement, false);
     submitButton.style.display = "flex";
     loading.off();
-
-    location.reload();
+    location.reload()
 };
 
 /**

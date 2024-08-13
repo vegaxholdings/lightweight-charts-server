@@ -79,7 +79,7 @@ class DateTime(datetime, FormType):
         value = self.strftime("%Y-%m-%dT%H:%M:%S")
         return f"""
             <label for="{name}">{name.replace("_", " ")}</label>    
-            <input name="{name}" type="checkbox" value="{value}">
+            <input name="{name}" type="datetime-local" value="{value}">
             """
 
     def __repr__(self):
@@ -117,14 +117,16 @@ class Bool(FormType):
 
     @classmethod
     def from_input(cls, value: str):
-        return cls(value)
+        return cls(bool(value))
 
     def to_input(self, name: str) -> str:
-        value = str(self.value).lower()
         return f"""
             <label for="{name}">{name.replace("_", " ")}</label>    
-            <input name="{name}" type="checkbox" value="{value}">
+            <input name="{name}" type="checkbox" {"checked" if self.value else ""}>
             """
+
+    def __repr__(self):
+        return f"<Bool {self.value}"
 
 
 class Color(FormType):
@@ -172,7 +174,8 @@ class _Options(FormType):
         for option in self.options:
             if option == self.selected:
                 tags.append(f'<option value="{option}" selected>{option}</option>')
-            tags.append(f'<option value="{option}">{option}</option>')
+            else:
+                tags.append(f'<option value="{option}">{option}</option>')
         return f"""
             <label for="{name}">{name.replace("_", " ")}</label>
             <select name="{name}">{"".join(tags)}</select>
