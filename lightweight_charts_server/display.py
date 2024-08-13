@@ -138,6 +138,7 @@ class View:
         # A line of code to explicitly assign everything when running it for the first time.
         default = {name: param.default for name, param in sig.items()}
         update = {}
+
         for name, value in request.items():
             if sig[name].annotation == ftype.DataFrame and not value:
                 # The default value of the file type is not passed to the Form.

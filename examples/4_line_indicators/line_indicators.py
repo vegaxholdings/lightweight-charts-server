@@ -16,7 +16,7 @@ def calculate_sma(df, period: int = 50):
     ).dropna()
 
 
-def render(sma: ftype.Bool = ftype.Bool(False)):
+def render(sma: ftype.Bool = ftype.Bool(True)):
     chart = Chart()
     chart.legend(visible=True)
     df = pd.read_csv(directory / "ohlcv.csv")

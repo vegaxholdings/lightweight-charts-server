@@ -126,7 +126,7 @@ class Bool(FormType):
             """
 
     def __repr__(self):
-        return f"<Bool {self.value}"
+        return f"<Bool {self.value}>"
 
 
 class Color(FormType):

@@ -53,16 +53,27 @@ class LoadingUI {
 class FormParameter extends FormData {
     async toJSON() {
         const data = {};
-        for (const [key, value] of Array.from(this.entries())) {
+
+        // process the checkbox elements
+        const form = document.querySelector('form');
+        const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            data[checkbox.name] = checkbox.checked;
+        });
+
+        for (const [key, value] of this.entries()) {
             if (value instanceof File && value.type === "text/csv") {
                 data[key] = await value.text();
             } else {
                 data[key] = value;
             }
         }
+
         return JSON.stringify(data);
     }
 }
+
+
 
 /**
  * Set or remove readonly attribute on input elements within a form.
