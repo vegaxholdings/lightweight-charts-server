@@ -30,7 +30,7 @@ def render(sma: ftype.Bool = ftype.Bool(True)):
 
 
 display = View(callback=render)
-server = Server(display)
+server = Server(display, title="line indicators")
 
 if __name__ == "__main__":
     server.serve()

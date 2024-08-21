@@ -28,7 +28,7 @@ def update(chart: Chart):
 
 
 display = Stream(chart, callback=update)
-server = Server(display)
+server = Server(display, title="live data")
 
 if __name__ == "__main__":
     server.serve()

@@ -47,7 +47,7 @@ def render(background_color: ftype.Color = ftype.Color("#090008")):
 
 
 display = View(callback=render)
-server = Server(display)
+server = Server(display, title="styling")
 
 if __name__ == "__main__":
     server.serve()

@@ -13,9 +13,16 @@ from lightweight_charts_server.system import STATIC_DIR, CHUNKS_DIR
 
 class Server:
 
-    def __init__(self, display: View | Stream, host: str = "0.0.0.0", port: int = 80):
+    def __init__(
+        self,
+        display: View | Stream,
+        host: str = "0.0.0.0",
+        port: int = 80,
+        title: str = "Chart",
+    ):
         self.port = port
         self.host = host
+        self.title = title
         self.display = display
         self.display_type = display.__class__
         if self.display_type not in [View, Stream]:
@@ -23,7 +30,9 @@ class Server:
 
     async def root(self, request: Request):
         template = Jinja2Templates(directory=STATIC_DIR)
-        return template.TemplateResponse("index.html", {"request": request})
+        return template.TemplateResponse(
+            "index.html", {"request": request, "title": self.title}
+        )
 
     async def view_router(self, request: Request):
         self.display.render(await request.json())

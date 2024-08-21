@@ -14,7 +14,7 @@ def render():
 
 
 display = View(callback=render)
-server = Server(display)
+server = Server(display, title="setting data")
 
 if __name__ == "__main__":
     server.serve()
