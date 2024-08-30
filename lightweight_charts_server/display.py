@@ -134,6 +134,7 @@ class View:
         if self.chart:
             self.chart.exit()
             del self.chart
+        init_render()
         sig = self.callback_signature.parameters
         # A line of code to explicitly assign everything when running it for the first time.
         default = {name: param.default for name, param in sig.items()}
