@@ -62,8 +62,12 @@ class FormParameter extends FormData {
         });
 
         for (const [key, value] of this.entries()) {
-            if (value instanceof File && value.type === "text/csv") {
-                data[key] = await value.text();
+            if (value instanceof File) {
+                if (value.type === "text/csv" || value.type === "application/json") {
+                    data[key] = await value.text();
+                } else {
+                    data[key] = value;
+                }
             } else {
                 data[key] = value;
             }

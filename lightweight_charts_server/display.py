@@ -141,7 +141,7 @@ class View:
         update = {}
 
         for name, value in request.items():
-            if sig[name].annotation == ftype.DataFrame and not value:
+            if sig[name].annotation in [ftype.DataFrame, ftype.JSON] and not value:
                 # The default value of the file type is not passed to the Form.
                 # Therefore, continue so that param.default can be used as is.
                 continue
