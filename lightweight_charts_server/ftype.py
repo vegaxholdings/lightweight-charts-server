@@ -4,6 +4,7 @@ and HTTP request processing as Python function signatures
 """
 
 import io
+import json
 from datetime import datetime
 from abc import ABC, abstractmethod
 
@@ -107,6 +108,33 @@ class DataFrame(pd.DataFrame, FormType):
         memory_usage = self.memory_usage(deep=True).sum() / (1024**2)  # MB 단위로 변환
         summary = f"Rows: {rows}, Columns: {cols}, Memory Usage: {memory_usage:.3f} MB"
         return f"<DataFrame {summary}>"
+
+
+class JSON(FormType):
+
+    def __init__(self, obj: dict | list):
+        self.obj = obj
+
+    @classmethod
+    def from_input(cls, value: str):
+        if not value:
+            return cls({})
+        buffer = io.StringIO(value)
+        obj = json.load(buffer)
+        return cls(obj)
+
+    def to_input(self, name: str) -> str:
+        return f"""
+            <label for="{name}">{name.replace("_", " ")}</label>
+            <input type="file" name="{name}" accept=".json">
+            """
+
+    def __repr__(self):
+        obj_str = str(self.obj)
+        if len(obj_str) > 100:
+            return f"<JSON {obj_str[:100]}...>"
+        else:
+            return f"<JSON {obj_str}>"
 
 
 class Bool(FormType):
