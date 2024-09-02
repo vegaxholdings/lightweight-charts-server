@@ -188,3 +188,29 @@
         stroke-dashoffset: 63;
     }
 }
+
+#log-href {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    z-index: 999999;
+    padding: 3.5px 20px;
+    color: #D0D3DB;
+    background-color: #161A25;
+    border: 1px solid #D0D3DB;
+}
+
+#log-href:hover {
+    cursor: pointer;
+}
+
+#log-href a {
+    text-decoration: none;  
+    color: inherit;         
+    font: inherit;          
+    background: none;       
+    border: none;           
+    padding: 0;             
+    margin: 0;              
+    outline: none;          
+}
