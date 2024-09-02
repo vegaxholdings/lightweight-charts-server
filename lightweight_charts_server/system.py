@@ -12,12 +12,18 @@ RENDER_DIR = STATIC_DIR / "render"
 RENDER_JS = RENDER_DIR / "index.js"
 CHUNKS_DIR = RENDER_DIR / "chunks"
 CHUNKS_NUM = RENDER_DIR / "chunk-num.lock"
+LOG_TXT = RENDER_DIR / "log.txt"
 
 
 def init_render():
     if RENDER_DIR.exists():
-        shutil.rmtree(RENDER_DIR)
-    CHUNKS_DIR.mkdir(parents=True)
+        for item in RENDER_DIR.iterdir():
+            if item != LOG_TXT:
+                if item.is_dir():
+                    shutil.rmtree(item)
+                else:
+                    item.unlink()
+    CHUNKS_DIR.mkdir(parents=True, exist_ok=True)
     RENDER_JS.write_text("")
     CHUNKS_NUM.write_text("0")
 
@@ -26,6 +32,8 @@ init_render()
 
 
 class LogHandler(logging.NullHandler):
+    """Expose to HTTP /static/render/log.txt"""
+
     pid = os.getpid()
 
     def __init__(self):
@@ -48,9 +56,11 @@ class LogHandler(logging.NullHandler):
 
         memory_status = f"Memory: {memory_gb}({memory_percent})"
         disk_status = f"Disk: {disk_gb}({disk_percent})"
-        time = f"{now.month:02d}-{now.day:02d} {now.hour:02d}:{now.minute:02d}:{now.second:02d}"
+        time = f"{now.month:02d}.{now.day:02d} {now.hour:02d}:{now.minute:02d}:{now.second:02d}"
         content = f"[{record.levelname}][{time}][pid:{self.pid}][{disk_status}][{memory_status}]: {self.format(record)}"
         print(content)
+        with LOG_TXT.open("a") as log:
+            log.write(content + "\n")
 
 
 # Redirect output from the warnings module to the logging module.
@@ -72,9 +82,11 @@ class CallbackError(Exception):
         self.msg = msg
 
     def __str__(self):
-        return (
+        content = (
             f"Invalid callback function\n\n"
             f"------------- Please fix the callback function as per the message below. -------------\n\n"
             f"{self.msg}"
             f"\n\n======================================================================================="
         )
+        log.critical(content)
+        return content

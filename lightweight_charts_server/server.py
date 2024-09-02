@@ -2,13 +2,13 @@ import asyncio
 
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.websockets import WebSocketDisconnect
 
 from lightweight_charts_server.display import View, Stream
-from lightweight_charts_server.system import STATIC_DIR, CHUNKS_DIR
+from lightweight_charts_server.system import STATIC_DIR, CHUNKS_DIR, LOG_TXT
 
 
 class Server:
@@ -19,10 +19,12 @@ class Server:
         host: str = "0.0.0.0",
         port: int = 80,
         title: str = "Chart",
+        log_btn: bool = False,
     ):
         self.port = port
         self.host = host
         self.title = title
+        self.log_btn = log_btn
         self.display = display
         self.display_type = display.__class__
         if self.display_type not in [View, Stream]:
@@ -31,7 +33,8 @@ class Server:
     async def root(self, request: Request):
         template = Jinja2Templates(directory=STATIC_DIR)
         return template.TemplateResponse(
-            "index.html", {"request": request, "title": self.title}
+            "index.html",
+            {"request": request, "title": self.title, "log_btn": self.log_btn},
         )
 
     async def view_router(self, request: Request):
@@ -57,14 +60,23 @@ class Server:
                     break
                 base_chunk_cnt = chunk_cnt
 
+    async def get_log(self):
+        return FileResponse(LOG_TXT)
+
     def serve(self):
+        """This function should only be executed if __name__ == "__main__" """
         app = FastAPI()
         app.mount("/static", StaticFiles(directory=STATIC_DIR))
         app.get("/", response_class=HTMLResponse)(self.root)
+
+        LOG_TXT.write_text("")
+        app.get("/log")(self.get_log)
+
         if self.display_type == View:
             app.post("/view-parameter")(self.view_router)
             self.display.render()
         elif self.display_type == Stream:
             app.websocket("/stream")(self.stream_router)
             self.display.render()
+
         uvicorn.run(app, host=self.host, port=self.port)

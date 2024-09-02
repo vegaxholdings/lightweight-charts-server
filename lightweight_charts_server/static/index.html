@@ -12,6 +12,11 @@
 
 <body>
     <div id="container"></div>
+    {% if log_btn %}
+        <div id="log-href">
+            <a href="/log" target="_blank" rel="noopener noreferrer">log</a>
+        </div>
+    {% endif %}
     <script src="/static/build/bundle.js"></script>
     <script src="/static/build/pywebview.js"></script>
     <script src="/static/index.js"></script>

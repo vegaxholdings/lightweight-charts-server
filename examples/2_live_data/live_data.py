@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 from lightweight_charts import Chart
-from lightweight_charts_server import Server, Stream
+from lightweight_charts_server import Server, Stream, log
 
 directory = Path(__file__).parent
 
@@ -24,11 +24,12 @@ def update(chart: Chart):
             chart.marker(text="The price crossed $20!")
 
         last_close = series["close"]
+        log.info(str(i))
         time.sleep(0.1)
 
 
 display = Stream(chart, callback=update)
-server = Server(display, title="live data")
+server = Server(display, title="live data", log_btn=True)
 
 if __name__ == "__main__":
     server.serve()
