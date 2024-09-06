@@ -72,11 +72,16 @@ class Server:
         LOG_TXT.write_text("")
         app.get("/log")(self.get_log)
 
-        if self.display_type == View:
-            app.post("/view-parameter")(self.view_router)
-            self.display.render()
-        elif self.display_type == Stream:
-            app.websocket("/stream")(self.stream_router)
-            self.display.render()
+        try:
+            if self.display_type == View:
+                app.post("/view-parameter")(self.view_router)
+                self.display.render()
+            elif self.display_type == Stream:
+                app.websocket("/stream")(self.stream_router)
+                self.display.render()
+        except RuntimeError as e:
+            raise ImportError(
+                "lightweight_charts_server must be imported before lightweight_charts"
+            ) from e
 
         uvicorn.run(app, host=self.host, port=self.port)
