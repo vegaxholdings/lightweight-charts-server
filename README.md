@@ -78,6 +78,7 @@ def create(
     string: ftype.Str = ftype.Str("apple"),  
     time: ftype.DateTime = ftype.DateTime.now() - timedelta(days=10),  
     df: ftype.DataFrame = ftype.DataFrame({"a": [], "b": [], "c": []}),
+    config: ftype.JSON = ftype.JSON([1, 2, 3]),
 ) -> Chart:
 
     option.selected # -> str
@@ -90,6 +91,7 @@ def create(
     time # -> datetime
 
     df # -> DataFrame
+    config.obj # -> list or dict
 
     ...
 
