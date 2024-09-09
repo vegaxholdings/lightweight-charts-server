@@ -2,8 +2,8 @@ import time
 from pathlib import Path
 
 import pandas as pd
-from lightweight_charts import Chart
 from lightweight_charts_server import Server, Stream
+from lightweight_charts import Chart
 
 directory = Path(__file__).parent
 
