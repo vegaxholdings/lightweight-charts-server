@@ -10,7 +10,7 @@ import portalocker
 from webview import window
 from lightweight_charts import Chart
 
-from lightweight_charts_server import ftype
+from lightweight_charts_server import ftype, template
 from lightweight_charts_server.system import CallbackError
 from lightweight_charts_server.system import init_render, log
 from lightweight_charts_server.system import RENDER_JS, CHUNKS_DIR, CHUNKS_NUM
@@ -88,11 +88,10 @@ class View:
             log.info(
                 f"Callback function executed in {duration:.2f} seconds\n" + param_repr
             )
-        except Exception:
-            raise CallbackError(
-                "An error occurred in the callback function\n\n"
-                f"{traceback.format_exc()}\n{param_repr}"
-            )
+        except Exception as e:
+            log.critical(traceback.format_exc())
+            message = f"{e.__class__.__name__} {str(e)}"
+            return template.alert_chart(message, escape_strict=True)
         if not isinstance(result, Chart):
             raise CallbackError(
                 "The callback function must return a Chart object.\n\n"

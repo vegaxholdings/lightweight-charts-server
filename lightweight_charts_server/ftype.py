@@ -60,7 +60,7 @@ class Str(str, FormType):
 
     @classmethod
     def from_input(cls, value: str):
-        return cls(value)
+        return cls(value.strip())
 
     def to_input(self, name: str) -> str:
         return f"""
