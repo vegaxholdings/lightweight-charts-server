@@ -1,4 +1,5 @@
 import time
+import json
 import pprint
 import inspect
 import traceback
@@ -147,7 +148,17 @@ class View:
             update[name] = sig[name].annotation.from_input(value)
 
         params = default | update
+
+        # _update_markers generates JS and is called whenever the marker method is called. This creates unnecessary JS.
+        # Therefore, the solution is to disable _update_markers and call it directly at the end.
+        _update_markers = Chart._update_markers
+        Chart._update_markers = lambda *args, **kwargs: None  # 1. disable
+
         self.chart = self.callback(params)
+
+        Chart._update_markers = _update_markers
+        Chart._update_markers(self.chart)  # 2. call it directly
+
         self.chart.show()
         self.inject_form(params)
 
