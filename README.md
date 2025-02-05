@@ -1,3 +1,5 @@
+[![PyPI Downloads](https://static.pepy.tech/badge/lightweight-charts-server)](https://pepy.tech/projects/lightweight-charts-server)
+
 ## lightweight-charts-server
 
 [lightweight-charts-python](https://github.com/louisnw01/lightweight-charts-python) based chart hosting library
